@@ -9,7 +9,7 @@ import UIKit
 import AVFoundation
 import SnapKit
 
-class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
+class ViewController: UIViewController {
 
   private var captureSession: AVCaptureSession!
 
@@ -113,11 +113,13 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
   }
 }
 
-extension ViewController {
-
+extension ViewController: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-    if let imageData = photo.fileDataRepresentation() {
+    guard let imageData = photo.fileDataRepresentation(),
+          let image = UIImage(data: imageData) else { return }
 
-    }
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image: image))
+    navigationController.modalPresentationStyle = .fullScreen
+    present(navigationController, animated: true)
   }
 }

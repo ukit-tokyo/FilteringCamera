@@ -14,6 +14,7 @@
 		B61813A12C0DAC6F00B3E1EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B61813A02C0DAC6F00B3E1EF /* Assets.xcassets */; };
 		B61813A42C0DAC6F00B3E1EF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B61813A22C0DAC6F00B3E1EF /* LaunchScreen.storyboard */; };
 		B630A7D32C0DAECC007DBEE8 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = B630A7D22C0DAECC007DBEE8 /* SnapKit */; };
+		B630A7D72C0DECFE007DBEE8 /* PhotoEditViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B630A7D62C0DECFE007DBEE8 /* PhotoEditViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		B61813A02C0DAC6F00B3E1EF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B61813A32C0DAC6F00B3E1EF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B61813A52C0DAC6F00B3E1EF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B630A7D62C0DECFE007DBEE8 /* PhotoEditViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoEditViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +63,7 @@
 				B61813972C0DAC6E00B3E1EF /* AppDelegate.swift */,
 				B61813992C0DAC6E00B3E1EF /* SceneDelegate.swift */,
 				B618139B2C0DAC6E00B3E1EF /* ViewController.swift */,
+				B630A7D62C0DECFE007DBEE8 /* PhotoEditViewController.swift */,
 				B618139D2C0DAC6E00B3E1EF /* Main.storyboard */,
 				B61813A02C0DAC6F00B3E1EF /* Assets.xcassets */,
 				B61813A22C0DAC6F00B3E1EF /* LaunchScreen.storyboard */,
@@ -149,6 +152,7 @@
 				B618139C2C0DAC6E00B3E1EF /* ViewController.swift in Sources */,
 				B61813982C0DAC6E00B3E1EF /* AppDelegate.swift in Sources */,
 				B618139A2C0DAC6E00B3E1EF /* SceneDelegate.swift in Sources */,
+				B630A7D72C0DECFE007DBEE8 /* PhotoEditViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
