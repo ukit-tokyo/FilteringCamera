@@ -22,6 +22,18 @@ class ViewController: UIViewController {
     return button
   }()
 
+  private lazy var captureAreaView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .clear
+    return view
+  }()
+
+  private lazy var overlay: UIView = {
+    let view = UIView()
+    view.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+    return view
+  }()
+
   override func viewDidLoad() {
     super.viewDidLoad()
 
@@ -42,6 +54,11 @@ class ViewController: UIViewController {
     }
   }
 
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    maskOverlay(with: captureAreaView.frame)
+  }
+
   private func authorize() async -> Bool {
     let status = AVCaptureDevice.authorizationStatus(for: .video)
     var isAuthorized = status == .authorized
@@ -60,42 +77,50 @@ class ViewController: UIViewController {
       throw NSError(domain: "com.example.FilteringCamera", code: -1001, userInfo: nil)
     }
 
-    do {
-      let input = try AVCaptureDeviceInput(device: device)
-      captureSession.addInput(input)
-      let output = AVCapturePhotoOutput()
-      output.setPreparedPhotoSettingsArray(
-        [AVCapturePhotoSettings(format: [AVVideoCodecKey : AVVideoCodecType.jpeg])],
-        completionHandler: nil
-      )
-      captureSession.addOutput(output)
-      return captureSession
-    } catch {
-      throw error
-    }
+    let input = try AVCaptureDeviceInput(device: device)
+    captureSession.addInput(input)
+
+    let output = AVCapturePhotoOutput()
+    output.setPreparedPhotoSettingsArray(
+      [AVCapturePhotoSettings(format: [AVVideoCodecKey : AVVideoCodecType.jpeg])],
+      completionHandler: nil
+    )
+    captureSession.addOutput(output)
+
+    return captureSession
   }
 
   /// カメラのプレビューレイヤを生成
-  private func cameraPreviewLayer() -> AVCaptureVideoPreviewLayer  {
-    // 指定したAVCaptureSessionでプレビューレイヤを初期化
-    let cameraPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+  private func cameraPreviewLayer() -> AVCaptureVideoPreviewLayer {
+    let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
     // プレビューレイヤが、カメラのキャプチャーを縦横比を維持した状態で、表示するように設定
-    cameraPreviewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
+    previewLayer.videoGravity = .resizeAspect
     // プレビューレイヤの表示の向きを設定
-    cameraPreviewLayer.connection?.videoOrientation = AVCaptureVideoOrientation.portrait
-    cameraPreviewLayer.frame = view.frame
-    return cameraPreviewLayer
+    previewLayer.connection?.videoOrientation = .portrait
+    previewLayer.frame = view.frame
+    return previewLayer
   }
 
   private func initLayout() {
-    let previewLayer = cameraPreviewLayer()
-    view.layer.insertSublayer(previewLayer, at: 0)
+    view.layer.insertSublayer(cameraPreviewLayer(), at: 0)
+
+    view.addSubview(overlay)
+    overlay.snp.makeConstraints { make in
+      make.edges.equalToSuperview()
+    }
 
     view.addSubview(shutterButton)
     shutterButton.snp.makeConstraints { make in
       make.centerX.equalToSuperview()
       make.bottom.equalTo(view.safeAreaLayoutGuide).inset(20)
       make.width.height.equalTo(60)
+    }
+    view.addSubview(captureAreaView)
+    captureAreaView.snp.makeConstraints { make in
+      make.centerX.equalToSuperview()
+      make.centerY.equalToSuperview()
+      make.width.equalToSuperview()
+      make.height.equalTo(captureAreaView.snp.width)
     }
 
     shutterButton.addAction(.init { [weak self] _ in
@@ -110,6 +135,17 @@ class ViewController: UIViewController {
 //    settings.photoQualityPrioritization = .quality
     guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
     photoOutput.capturePhoto(with: settings, delegate: self)
+  }
+
+  /// オーバーレイのマスク（切り抜き）を設定
+  private func maskOverlay(with maskingRect: CGRect) {
+    let maskLayer = CAShapeLayer()
+    maskLayer.fillRule = .evenOdd
+    let path = CGMutablePath()
+    path.addRect(overlay.bounds)
+    path.addRect(maskingRect)
+    maskLayer.path = path
+    overlay.layer.mask = maskLayer
   }
 }
 
