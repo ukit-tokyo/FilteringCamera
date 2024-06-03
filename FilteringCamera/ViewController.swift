@@ -7,23 +7,34 @@
 
 import UIKit
 import AVFoundation
+import SnapKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
   private var captureSession: AVCaptureSession!
+
+  private lazy var shutterButton: UIButton = {
+    let button = UIButton()
+    button.layer.cornerRadius = 30
+    button.layer.masksToBounds = true
+    button.setTitleColor(.white, for: .normal)
+    button.backgroundColor = .systemGray
+    return button
+  }()
 
   override func viewDidLoad() {
     super.viewDidLoad()
 
     Task {
       guard await authorize() else { return }
+
       do {
         self.captureSession = try avCaptureSession()
       } catch {
-
+        print("Error: \(error)")
       }
-      let previewLayer = self.cameraPreviewLayer()
-      view.layer.insertSublayer(previewLayer, at: 0)
+
+      initLayout()
 
       Task.detached {
         await self.captureSession.startRunning()
@@ -75,5 +86,38 @@ class ViewController: UIViewController {
     cameraPreviewLayer.frame = view.frame
     return cameraPreviewLayer
   }
+
+  private func initLayout() {
+    let previewLayer = cameraPreviewLayer()
+    view.layer.insertSublayer(previewLayer, at: 0)
+
+    view.addSubview(shutterButton)
+    shutterButton.snp.makeConstraints { make in
+      make.centerX.equalToSuperview()
+      make.bottom.equalTo(view.safeAreaLayoutGuide).inset(20)
+      make.width.height.equalTo(60)
+    }
+
+    shutterButton.addAction(.init { [weak self] _ in
+      self?.capturePhoto()
+    }, for: .touchUpInside)
+  }
+
+  private func capturePhoto() {
+    let settings = AVCapturePhotoSettings()
+    settings.flashMode = .auto
+//    settings.maxPhotoDimensions = .init(width:, height:)
+//    settings.photoQualityPrioritization = .quality
+    guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
+    photoOutput.capturePhoto(with: settings, delegate: self)
+  }
 }
 
+extension ViewController {
+
+  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    if let imageData = photo.fileDataRepresentation() {
+
+    }
+  }
+}
