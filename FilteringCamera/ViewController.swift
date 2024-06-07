@@ -147,6 +147,22 @@ class ViewController: UIViewController {
     maskLayer.path = path
     overlay.layer.mask = maskLayer
   }
+
+  /// 画像の中央を正方形にトリミング
+  private func trim(image: UIImage) -> UIImage {
+    var _image: UIImage = image
+    let side: CGFloat = _image.size.width < _image.size.height ? _image.size.width : _image.size.height
+    let origin: CGPoint = _image.size.width < _image.size.height
+      ? CGPoint(x: 0.0, y: (_image.size.width - _image.size.height) * 0.5)
+      : CGPoint(x: (_image.size.height - _image.size.width) * 0.5, y: 0.0)
+
+    UIGraphicsBeginImageContextWithOptions(CGSize(width: side, height: side), false, 0.0)
+    _image.draw(in: CGRect(origin: origin, size: CGSize(width: _image.size.width, height: _image.size.height)))
+    _image = UIGraphicsGetImageFromCurrentImageContext()!
+    UIGraphicsEndImageContext()
+
+    return _image
+  }
 }
 
 extension ViewController: AVCapturePhotoCaptureDelegate {
@@ -154,8 +170,10 @@ extension ViewController: AVCapturePhotoCaptureDelegate {
     guard let imageData = photo.fileDataRepresentation(),
           let image = UIImage(data: imageData) else { return }
 
-    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image: image))
+    let trimmedImage = trim(image: image)
+
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image: trimmedImage))
     navigationController.modalPresentationStyle = .fullScreen
-    present(navigationController, animated: true)
+    present(navigationController, animated: false)
   }
 }
