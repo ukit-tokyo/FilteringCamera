@@ -59,19 +59,10 @@ class ViewController: UIViewController {
     }, for: .touchUpInside)
   }
 
-  private func initLayout() {
-    view.addSubview(avFoundationCameraButton)
-    avFoundationCameraButton.snp.makeConstraints { make in
-      make.center.equalToSuperview()
-      make.width.equalTo(200)
-      make.height.equalTo(44)
-    }
-  }
-
   private func presentImagePicker() {
     let imagePicker = UIImagePickerController()
     imagePicker.sourceType = .camera
-    imagePicker.allowsEditing = true
+    imagePicker.allowsEditing = false
     imagePicker.delegate = self
 
 //    let overlay = UIView()
@@ -85,6 +76,11 @@ class ViewController: UIViewController {
 extension ViewController: UINavigationControllerDelegate, UIImagePickerControllerDelegate {
   func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
     guard let image = info[.originalImage] as? UIImage else { return }
-    print("testing___", image)
+
+    picker.dismiss(animated: false) { [weak self] in
+      let vc = UINavigationController(rootViewController: PhotoEditViewController(image: image))
+      vc.modalPresentationStyle = .fullScreen
+      self?.present(vc, animated: false)
+    }
   }
 }
