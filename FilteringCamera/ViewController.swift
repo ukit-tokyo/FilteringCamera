@@ -13,7 +13,18 @@ class ViewController: UIViewController {
     let button = UIButton()
     button.layer.cornerRadius = 12
     button.layer.masksToBounds = true
-    button.setTitle("CAMERA", for: .normal)
+    button.setTitle("AV FOUNDATION", for: .normal)
+    button.setTitleColor(.label, for: .normal)
+    button.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+    button.backgroundColor = .systemGray
+    return button
+  }()
+
+  private lazy var imagePickerCameraButton: UIButton = {
+    let button = UIButton()
+    button.layer.cornerRadius = 12
+    button.layer.masksToBounds = true
+    button.setTitle("IMAGE PICKER", for: .normal)
     button.setTitleColor(.label, for: .normal)
     button.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
     button.backgroundColor = .systemGray
@@ -30,10 +41,21 @@ class ViewController: UIViewController {
       make.height.equalTo(44)
     }
 
+    view.addSubview(imagePickerCameraButton)
+    imagePickerCameraButton.snp.makeConstraints { make in
+      make.centerX.equalToSuperview()
+      make.top.equalTo(avFoundationCameraButton.snp.bottom).offset(16)
+      make.size.equalTo(avFoundationCameraButton)
+    }
+
     avFoundationCameraButton.addAction(.init { _ in
       let vc = AVFoundationCameraViewController()
       vc.modalPresentationStyle = .fullScreen
       self.present(vc, animated: true)
+    }, for: .touchUpInside)
+
+    imagePickerCameraButton.addAction(.init { _ in
+      self.presentImagePicker()
     }, for: .touchUpInside)
   }
 
@@ -44,5 +66,25 @@ class ViewController: UIViewController {
       make.width.equalTo(200)
       make.height.equalTo(44)
     }
+  }
+
+  private func presentImagePicker() {
+    let imagePicker = UIImagePickerController()
+    imagePicker.sourceType = .camera
+    imagePicker.allowsEditing = true
+    imagePicker.delegate = self
+
+//    let overlay = UIView()
+//    overlay.backgroundColor = UIColor.red.withAlphaComponent(0.5)
+//    imagePicker.cameraOverlayView = overlay
+
+    present(imagePicker, animated: true)
+  }
+}
+
+extension ViewController: UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+  func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    guard let image = info[.originalImage] as? UIImage else { return }
+    print("testing___", image)
   }
 }
