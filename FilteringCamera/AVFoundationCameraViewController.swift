@@ -22,7 +22,7 @@ class AVFoundationCameraViewController: UIViewController {
   private lazy var previewLayer: AVCaptureVideoPreviewLayer = {
     let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
     previewLayer.videoGravity = .resizeAspect
-    previewLayer.connection?.videoOrientation = .portrait
+    previewLayer.connection?.videoOrientation = .landscapeLeft
     return previewLayer
   }()
 

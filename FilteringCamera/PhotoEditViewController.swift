@@ -30,12 +30,12 @@ final class PhotoEditViewController: UIViewController {
 
   private let cellSize = CGSize(width: 100, height: 124)
 
-  private let image: UIImage
+  private let originalImage: UIImage
   private var compactImage: UIImage!
   private let context = CIContext()
 
   init(image: UIImage) {
-    self.image = image
+    self.originalImage = image
     super.init(nibName: nil, bundle: nil)
     
     imageView.image = image
@@ -104,32 +104,10 @@ final class PhotoEditViewController: UIViewController {
     }
     return resizedImage
   }
-}
-
-extension PhotoEditViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout  {
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    photoFilters.count
-  }
-
-  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-
-    let filter = photoFilters[indexPath.item]
-    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FilterItemCell", for: indexPath) as! FilterItemCell
-    cell.titleLabel.text = filter.displayName
-
-    Task {
-      let image = await filterImage(at: indexPath, original: compactImage)
-      cell.imageView.image = image
-    }
-
-    return cell
-  }
 
   /// 画像のフィルタを適用する
   /// 描画処理が重いので async でメインスレッドから逃す
-  private func filterImage(at indexPath: IndexPath, original originalImage: UIImage) async -> UIImage? {
-    let photoFilter = photoFilters[indexPath.item]
-
+  private func filterImage(photoFilter: PhotoFilter, originalImage: UIImage) async -> UIImage? {
     guard let filter = photoFilter.filter else { return originalImage }
 
     photoFilter.parameters?.forEach { (key, value) in
@@ -151,8 +129,42 @@ extension PhotoEditViewController: UICollectionViewDataSource, UICollectionViewD
   }
 }
 
+extension PhotoEditViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout  {
+  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    photoFilters.count
+  }
+
+  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+
+    let filter = photoFilters[indexPath.item]
+    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FilterItemCell", for: indexPath) as! FilterItemCell
+    cell.titleLabel.text = filter.displayName
+
+    Task {
+      let image = await filterImage(photoFilter: filter, originalImage: compactImage)
+      cell.imageView.image = image
+    }
+
+    return cell
+  }
+
+  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    Task {
+      let filter = photoFilters[indexPath.item]
+      let image = await filterImage(photoFilter: filter, originalImage: originalImage)
+      imageView.image = image
+    }
+
+    collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+  }
+}
+
 extension PhotoEditViewController {
   final class FilterItemCell: UICollectionViewCell {
+    override var isSelected: Bool {
+      didSet { updateLayout(with: isSelected) }
+    }
+
     lazy var titleLabel: UILabel = {
       let label = UILabel()
       label.font = .systemFont(ofSize: 14, weight: .regular)
@@ -188,6 +200,15 @@ extension PhotoEditViewController {
     
     required init?(coder: NSCoder) {
       fatalError("init(coder:) has not been implemented")
+    }
+
+    func updateLayout(with isSelected: Bool) {
+      titleLabel.font = isSelected
+        ? .systemFont(ofSize: 14, weight: .bold)
+        : .systemFont(ofSize: 14, weight: .regular)
+      imageView.transform = isSelected 
+        ? CGAffineTransform(scaleX: 1.05, y: 1.05)
+        : .identity
     }
   }
 }
