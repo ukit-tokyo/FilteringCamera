@@ -11,27 +11,48 @@ import SnapKit
 
 class AVFoundationCameraViewController: UIViewController {
 
-  private var captureSession: AVCaptureSession!
+  private lazy var captureSession: AVCaptureSession = {
+    let captureSession = AVCaptureSession()
+    captureSession.sessionPreset = .photo
+    return captureSession
+  }()
+
+  private lazy var captureDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back)
+
+  private lazy var previewLayer: AVCaptureVideoPreviewLayer = {
+    let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+    previewLayer.videoGravity = .resizeAspect
+    previewLayer.connection?.videoOrientation = .portrait
+    return previewLayer
+  }()
+
+  private lazy var previewBaseView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .clear
+    return view
+  }()
+
+  private lazy var captureAreaView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .clear
+    view.isUserInteractionEnabled = false
+    return view
+  }()
+
+  private lazy var overlayView: UIView = {
+    let view = UIView()
+    view.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+    view.isUserInteractionEnabled = false
+    return view
+  }()
 
   private lazy var shutterButton: UIButton = {
     let button = UIButton()
     button.layer.cornerRadius = 30
     button.layer.masksToBounds = true
     button.setTitleColor(.white, for: .normal)
-    button.backgroundColor = .systemGray
+    button.backgroundColor = .white
     return button
-  }()
-
-  private lazy var captureAreaView: UIView = {
-    let view = UIView()
-    view.backgroundColor = .clear
-    return view
-  }()
-
-  private lazy var overlay: UIView = {
-    let view = UIView()
-    view.backgroundColor = UIColor.black.withAlphaComponent(0.8)
-    return view
   }()
 
   override func viewDidLoad() {
@@ -40,23 +61,39 @@ class AVFoundationCameraViewController: UIViewController {
     Task {
       guard await authorize() else { return }
 
-      do {
-        self.captureSession = try avCaptureSession()
-      } catch {
-        print("Error: \(error)")
-      }
-
       initLayout()
 
       Task.detached {
-        await self.captureSession.startRunning()
+        do {
+          await self.captureSession.beginConfiguration()
+          try await self.setupCaptureSession()
+          await self.captureSession.commitConfiguration()
+          await self.captureSession.startRunning()
+        } catch {
+          print("testing___", error)
+          await self.captureSession.commitConfiguration()
+        }
       }
     }
   }
 
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+
+    guard let zoomFactor = captureDevice?.virtualDeviceSwitchOverVideoZoomFactors.first else {
+      return
+    }
+    try? captureDevice?.lockForConfiguration()
+    captureDevice?.videoZoomFactor = CGFloat(truncating: zoomFactor)
+    captureDevice?.unlockForConfiguration()
+  }
+
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
+
+    self.view.layoutIfNeeded()
     maskOverlay(with: captureAreaView.frame)
+    previewLayer.frame = previewBaseView.bounds
   }
 
   private func authorize() async -> Bool {
@@ -69,15 +106,12 @@ class AVFoundationCameraViewController: UIViewController {
   }
 
   /// AVCaptureSession の設定
-  private func avCaptureSession() throws -> AVCaptureSession {
-    let captureSession = AVCaptureSession()
-    captureSession.sessionPreset = .photo
-
-    guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+  private func setupCaptureSession() throws {
+    guard let captureDevice else {
       throw NSError(domain: "com.example.FilteringCamera", code: -1001, userInfo: nil)
     }
 
-    let input = try AVCaptureDeviceInput(device: device)
+    let input = try AVCaptureDeviceInput(device: captureDevice)
     captureSession.addInput(input)
 
     let output = AVCapturePhotoOutput()
@@ -86,42 +120,45 @@ class AVFoundationCameraViewController: UIViewController {
       completionHandler: nil
     )
     captureSession.addOutput(output)
-
-    return captureSession
-  }
-
-  /// カメラのプレビューレイヤを生成
-  private func cameraPreviewLayer() -> AVCaptureVideoPreviewLayer {
-    let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-    // プレビューレイヤが、カメラのキャプチャーを縦横比を維持した状態で、表示するように設定
-    previewLayer.videoGravity = .resizeAspect
-    // プレビューレイヤの表示の向きを設定
-    previewLayer.connection?.videoOrientation = .portrait
-    previewLayer.frame = view.frame
-    return previewLayer
   }
 
   private func initLayout() {
-    view.backgroundColor = .systemBackground
-    view.layer.insertSublayer(cameraPreviewLayer(), at: 0)
+    view.backgroundColor = .black
 
-    view.addSubview(overlay)
-    overlay.snp.makeConstraints { make in
+    view.addSubview(previewBaseView)
+    previewBaseView.layer.addSublayer(previewLayer)
+    previewBaseView.snp.makeConstraints { make in
+      make.top.equalTo(view.safeAreaLayoutGuide)
+      make.left.right.equalToSuperview()
+    }
+
+    previewBaseView.addSubview(overlayView)
+    overlayView.snp.makeConstraints { make in
       make.edges.equalToSuperview()
     }
 
-    view.addSubview(shutterButton)
-    shutterButton.snp.makeConstraints { make in
-      make.centerX.equalToSuperview()
-      make.bottom.equalTo(view.safeAreaLayoutGuide).inset(20)
-      make.width.height.equalTo(60)
-    }
-    view.addSubview(captureAreaView)
+    overlayView.addSubview(captureAreaView)
     captureAreaView.snp.makeConstraints { make in
-      make.centerX.equalToSuperview()
-      make.centerY.equalToSuperview()
+      make.center.equalToSuperview()
       make.width.equalToSuperview()
       make.height.equalTo(captureAreaView.snp.width)
+    }
+
+    let bottomView = UIView()
+    bottomView.backgroundColor = .clear
+
+    bottomView.addSubview(shutterButton)
+    shutterButton.snp.makeConstraints { make in
+      make.center.equalToSuperview()
+      make.width.height.equalTo(60)
+    }
+
+    view.addSubview(bottomView)
+    bottomView.snp.makeConstraints { make in
+      make.top.equalTo(previewBaseView.snp.bottom)
+      make.left.right.equalToSuperview()
+      make.bottom.equalTo(view.safeAreaLayoutGuide)
+      make.height.equalTo(160)
     }
 
     shutterButton.addAction(.init { [weak self] _ in
@@ -143,10 +180,10 @@ class AVFoundationCameraViewController: UIViewController {
     let maskLayer = CAShapeLayer()
     maskLayer.fillRule = .evenOdd
     let path = CGMutablePath()
-    path.addRect(overlay.bounds)
+    path.addRect(overlayView.bounds)
     path.addRect(maskingRect)
     maskLayer.path = path
-    overlay.layer.mask = maskLayer
+    overlayView.layer.mask = maskLayer
   }
 
   /// 画像の中央を正方形にトリミング
@@ -173,24 +210,19 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
 
     let trimmedImage = trim(image: image)
 
-    let inputImage = CIImage.init(image: trimmedImage)!
-
-//    let filter = CIFilter(name: "CIBoxBlur", parameters: [
+//    let inputImage = CIImage.init(image: trimmedImage)!
+//
+//    let filter = CIFilter(name: "CIColorMonochrome", parameters: [
 //      kCIInputImageKey: inputImage,
-//      kCIInputRadiusKey: 100
+//      kCIInputColorKey: CIColor(red: 0, green: 0, blue: 0),
+//      kCIInputIntensityKey: 1.0
 //    ])
+//
+//    guard let outputImage = filter?.outputImage else { print("testing___", "returned"); return }
+//    let context = CIContext()
+//    guard let cgImage = context.createCGImage(outputImage, from: inputImage.extent) else { print("testing___", "returned"); return }
 
-    let filter = CIFilter(name: "CIColorMonochrome", parameters: [
-      kCIInputImageKey: inputImage,
-      kCIInputColorKey: CIColor(red: 0, green: 0, blue: 0),
-      kCIInputIntensityKey: 1.0
-    ])
-
-    guard let outputImage = filter?.outputImage else { print("testing___", "returned"); return }
-    let context = CIContext()
-    guard let cgImage = context.createCGImage(outputImage, from: inputImage.extent) else { print("testing___", "returned"); return }
-
-    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  UIImage(cgImage: cgImage)))
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  trimmedImage))
     navigationController.modalPresentationStyle = .fullScreen
     present(navigationController, animated: false)
   }
