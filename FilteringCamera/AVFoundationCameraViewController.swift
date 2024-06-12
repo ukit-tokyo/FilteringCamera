@@ -8,6 +8,7 @@
 import UIKit
 import AVFoundation
 import SnapKit
+import CoreMotion
 
 class AVFoundationCameraViewController: UIViewController {
 
@@ -22,7 +23,7 @@ class AVFoundationCameraViewController: UIViewController {
   private lazy var previewLayer: AVCaptureVideoPreviewLayer = {
     let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
     previewLayer.videoGravity = .resizeAspect
-    previewLayer.connection?.videoOrientation = .landscapeLeft
+    previewLayer.connection?.videoOrientation = .portrait
     return previewLayer
   }()
 
@@ -55,6 +56,17 @@ class AVFoundationCameraViewController: UIViewController {
     return button
   }()
 
+  private let motionManager: CMMotionManager = {
+    let manager = CMMotionManager()
+    manager.deviceMotionUpdateInterval = 0.5
+    return manager
+  }()
+  private let motionOperationQueue = OperationQueue()
+
+  private var currentDeviceOrientation: UIDeviceOrientation = .portrait
+
+  deinit { motionManager.stopDeviceMotionUpdates() }
+
   override func viewDidLoad() {
     super.viewDidLoad()
 
@@ -75,6 +87,11 @@ class AVFoundationCameraViewController: UIViewController {
         }
       }
     }
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    startObserveDeviceMotion()
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -122,6 +139,27 @@ class AVFoundationCameraViewController: UIViewController {
     captureSession.addOutput(output)
   }
 
+  private func startObserveDeviceMotion() {
+    guard motionManager.isDeviceMotionAvailable else { return }
+
+    motionManager.startDeviceMotionUpdates(
+      using: .xMagneticNorthZVertical,
+      to: motionOperationQueue) { [weak self] deviceMotion, error in
+        guard let self, let deviceMotion else { return }
+
+        let xAxis = deviceMotion.gravity.x
+        if xAxis > 0.65 {
+          self.currentDeviceOrientation = .landscapeRight
+        } else if xAxis < -0.65 {
+          self.currentDeviceOrientation = .landscapeLeft
+        } else {
+          self.currentDeviceOrientation = .portrait
+        }
+
+        print("testing___orientation", self.currentDeviceOrientation.rawValue)
+    }
+  }
+
   private func initLayout() {
     view.backgroundColor = .black
 
@@ -163,6 +201,7 @@ class AVFoundationCameraViewController: UIViewController {
 
     shutterButton.addAction(.init { [weak self] _ in
       self?.capturePhoto()
+      self?.motionManager.stopDeviceMotionUpdates()
     }, for: .touchUpInside)
   }
 
@@ -208,7 +247,10 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
     guard let imageData = photo.fileDataRepresentation(),
           let image = UIImage(data: imageData) else { return }
 
-    let squaredImage = trimToSquare(image: image)
+    print("testing___imageOrientation", image.imageOrientation.rawValue)
+    let fixed = image.fixOrientation()
+    print("testing___imageOrientation", fixed.imageOrientation.rawValue)
+    let squaredImage = trimToSquare(image: fixed)
 
     let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  squaredImage))
     navigationController.modalPresentationStyle = .fullScreen
@@ -216,3 +258,56 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
   }
 }
 
+extension UIImage {
+  func fixOrientation() -> UIImage {
+    if self.imageOrientation == .up {
+      return self
+    }
+    var transform = CGAffineTransform.identity
+    let width = self.size.width
+    let height = self.size.height
+
+    switch self.imageOrientation {
+    case .down, .downMirrored:
+      transform = transform.translatedBy(x: width, y: height)
+    case .left, .leftMirrored:
+      transform = transform.translatedBy(x: width, y: 0)
+      transform = transform.rotated(by: CGFloat(Double.pi / 2))
+    case .right, .rightMirrored:
+      transform = transform.translatedBy(x: 0, y: height)
+      transform = transform.rotated(by: CGFloat(-Double.pi / 2))
+    default:
+      break
+    }
+
+    switch self.imageOrientation {
+    case .upMirrored, .downMirrored:
+      transform = transform.translatedBy(x: width, y: 0)
+      transform = transform.scaledBy(x: -1, y: 1)
+    case .leftMirrored, .rightMirrored:
+      transform = transform.translatedBy(x: height, y: 0)
+      transform = transform.scaledBy(x: -1, y: 1)
+    default:
+      break
+    }
+    let cgimage = self.cgImage!
+
+    let context = CGContext(
+      data: nil, width: Int(width), height: Int(height),
+      bitsPerComponent: cgimage.bitsPerComponent, bytesPerRow: 0,
+      space: cgimage.colorSpace!,
+      bitmapInfo: cgimage.bitmapInfo.rawValue)!
+
+    context.concatenate(transform)
+
+    switch self.imageOrientation {
+    case .left, .leftMirrored, .right, .rightMirrored:
+      context.draw(cgimage, in: CGRect(x: 0, y: 0, width: height, height: width))
+    default:
+      context.draw(cgimage, in: CGRect(x: 0, y: 0, width: width, height: height))
+    }
+    let cgimg = context.makeImage()
+    let img = UIImage(cgImage: cgimg!)
+    return img
+  }
+}
