@@ -12,6 +12,7 @@ final class PhotoEditViewController: UIViewController {
     let imageView = UIImageView()
     imageView.contentMode = .scaleAspectFit
     imageView.layer.cornerRadius = 8
+    imageView.layer.masksToBounds = true
     return imageView
   }()
 
@@ -30,11 +31,16 @@ final class PhotoEditViewController: UIViewController {
   private let cellSize = CGSize(width: 100, height: 124)
 
   private let image: UIImage
+  private var compactImage: UIImage!
+  private let context = CIContext()
 
   init(image: UIImage) {
     self.image = image
     super.init(nibName: nil, bundle: nil)
+    
     imageView.image = image
+    // フィルタの描画処理を軽くするために、予め画像を最小限のサイズに縮小しておく
+    compactImage = minimiseImage(from: image)
   }
 
   required init?(coder: NSCoder) {
@@ -88,18 +94,60 @@ final class PhotoEditViewController: UIViewController {
     filterSelectionView.delegate = self
     filterSelectionView.register(FilterItemCell.self, forCellWithReuseIdentifier: "FilterItemCell")
   }
+
+  /// 画像を最小限のサイズに縮小する
+  private func minimiseImage(from image: UIImage) -> UIImage {
+    let size = CGSize(width: cellSize.width, height: cellSize.width)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let resizedImage = renderer.image { _ in
+      image.draw(in: CGRect(origin: .zero, size: size))
+    }
+    return resizedImage
+  }
 }
 
 extension PhotoEditViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout  {
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    10
+    photoFilters.count
   }
 
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+
+    let filter = photoFilters[indexPath.item]
     let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FilterItemCell", for: indexPath) as! FilterItemCell
-    cell.titleLabel.text = "title"
-    cell.imageView.image = image
+    cell.titleLabel.text = filter.displayName
+
+    Task {
+      let image = await filterImage(at: indexPath, original: compactImage)
+      cell.imageView.image = image
+    }
+
     return cell
+  }
+
+  /// 画像のフィルタを適用する
+  /// 描画処理が重いので async でメインスレッドから逃す
+  private func filterImage(at indexPath: IndexPath, original originalImage: UIImage) async -> UIImage? {
+    let photoFilter = photoFilters[indexPath.item]
+
+    guard let filter = photoFilter.filter else { return originalImage }
+
+    photoFilter.parameters?.forEach { (key, value) in
+      filter.setValue(value, forKey: key)
+    }
+    let inputImage = CIImage(image: originalImage)!
+    filter.setValue(inputImage, forKey: kCIInputImageKey)
+
+    guard let outputImage = filter.outputImage else {
+      print("failed to get output image")
+      return nil
+    }
+    guard let cgImage = context.createCGImage(outputImage, from: inputImage.extent) else {
+      print("failed to create cgImage from outputImage")
+      return nil
+    }
+
+    return UIImage(cgImage: cgImage)
   }
 }
 
@@ -117,6 +165,7 @@ extension PhotoEditViewController {
       let imageView = UIImageView()
       imageView.contentMode = .scaleAspectFit
       imageView.layer.cornerRadius = 8
+      imageView.layer.masksToBounds = true
       return imageView
     }()
 

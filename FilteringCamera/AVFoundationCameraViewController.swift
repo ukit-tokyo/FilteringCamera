@@ -187,7 +187,7 @@ class AVFoundationCameraViewController: UIViewController {
   }
 
   /// 画像の中央を正方形にトリミング
-  private func trim(image: UIImage) -> UIImage {
+  private func trimToSquare(image: UIImage) -> UIImage {
     var _image: UIImage = image
     let side: CGFloat = _image.size.width < _image.size.height ? _image.size.width : _image.size.height
     let origin: CGPoint = _image.size.width < _image.size.height
@@ -208,21 +208,9 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
     guard let imageData = photo.fileDataRepresentation(),
           let image = UIImage(data: imageData) else { return }
 
-    let trimmedImage = trim(image: image)
+    let squaredImage = trimToSquare(image: image)
 
-//    let inputImage = CIImage.init(image: trimmedImage)!
-//
-//    let filter = CIFilter(name: "CIColorMonochrome", parameters: [
-//      kCIInputImageKey: inputImage,
-//      kCIInputColorKey: CIColor(red: 0, green: 0, blue: 0),
-//      kCIInputIntensityKey: 1.0
-//    ])
-//
-//    guard let outputImage = filter?.outputImage else { print("testing___", "returned"); return }
-//    let context = CIContext()
-//    guard let cgImage = context.createCGImage(outputImage, from: inputImage.extent) else { print("testing___", "returned"); return }
-
-    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  trimmedImage))
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  squaredImage))
     navigationController.modalPresentationStyle = .fullScreen
     present(navigationController, animated: false)
   }
