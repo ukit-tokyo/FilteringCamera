@@ -129,7 +129,11 @@ class AVFoundationCameraViewController: UIViewController {
 
     print("testing___deviceOrientation", UIDevice.current.orientation.rawValue)
 
-    switch UIDevice.current.orientation {
+    let orientation = UIDevice.current.orientation
+
+    currentDeviceOrientation = orientation
+
+    switch orientation {
     case .portrait:
       layoutForPortrait()
       previewLayer.connection?.videoOrientation = .portrait
@@ -314,50 +318,39 @@ class AVFoundationCameraViewController: UIViewController {
     maskLayer.path = path
     overlayView.layer.mask = maskLayer
   }
-
-  /// 画像の中央を正方形にトリミング
-  private func trimToSquare(image: UIImage) -> UIImage {
-    var _image: UIImage = image
-    let side: CGFloat = _image.size.width < _image.size.height ? _image.size.width : _image.size.height
-    let origin: CGPoint = _image.size.width < _image.size.height
-      ? CGPoint(x: 0.0, y: (_image.size.width - _image.size.height) * 0.5)
-      : CGPoint(x: (_image.size.height - _image.size.width) * 0.5, y: 0.0)
-
-    UIGraphicsBeginImageContextWithOptions(CGSize(width: side, height: side), false, 0.0)
-    _image.draw(in: CGRect(origin: origin, size: CGSize(width: _image.size.width, height: _image.size.height)))
-    _image = UIGraphicsGetImageFromCurrentImageContext()!
-    UIGraphicsEndImageContext()
-
-    return _image
-  }
 }
+
+// MARK: - delegate
 
 extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
     guard let imageData = photo.fileDataRepresentation(),
           let image = UIImage(data: imageData) else { return }
 
-    print("testing___imageOrientation", image.imageOrientation.rawValue)
-    let fixed = image.fixOrientation()
-    print("testing___imageOrientation", fixed.imageOrientation.rawValue)
-    let squaredImage = trimToSquare(image: fixed)
+    let fixed = ImageUtility.fixOrientation(uiImage: image)
+    let squared = ImageUtility.trimToSquare(uiImage: fixed)
+    let angle = (-CGFloat.pi / 2) * CGFloat(truncating: currentDeviceOrientation.coefficientForAngle as NSNumber)
+    let rotated = ImageUtility.rotate(uiImage: squared, angle: angle)
 
-    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  squaredImage))
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  rotated))
     navigationController.modalPresentationStyle = .fullScreen
     present(navigationController, animated: false)
   }
 }
 
-extension UIImage {
-  func fixOrientation() -> UIImage {
-    if self.imageOrientation == .up {
-      return self
+// MARK: - utility
+
+private class ImageUtility {
+  /// 画像のオリエンテーションを .up に正す
+  static func fixOrientation(uiImage: UIImage) -> UIImage {
+    if uiImage.imageOrientation == .up {
+      return uiImage
     }
     var transform = CGAffineTransform.identity
-    let width = self.size.width
-    let height = self.size.height
+    let width = uiImage.size.width
+    let height = uiImage.size.height
 
-    switch self.imageOrientation {
+    switch uiImage.imageOrientation {
     case .down, .downMirrored:
       transform = transform.translatedBy(x: width, y: height)
     case .left, .leftMirrored:
@@ -370,7 +363,7 @@ extension UIImage {
       break
     }
 
-    switch self.imageOrientation {
+    switch uiImage.imageOrientation {
     case .upMirrored, .downMirrored:
       transform = transform.translatedBy(x: width, y: 0)
       transform = transform.scaledBy(x: -1, y: 1)
@@ -380,24 +373,71 @@ extension UIImage {
     default:
       break
     }
-    let cgimage = self.cgImage!
+    let cgImage = uiImage.cgImage!
 
     let context = CGContext(
       data: nil, width: Int(width), height: Int(height),
-      bitsPerComponent: cgimage.bitsPerComponent, bytesPerRow: 0,
-      space: cgimage.colorSpace!,
-      bitmapInfo: cgimage.bitmapInfo.rawValue)!
+      bitsPerComponent: cgImage.bitsPerComponent, bytesPerRow: 0,
+      space: cgImage.colorSpace!,
+      bitmapInfo: cgImage.bitmapInfo.rawValue)!
 
     context.concatenate(transform)
 
-    switch self.imageOrientation {
+    switch uiImage.imageOrientation {
     case .left, .leftMirrored, .right, .rightMirrored:
-      context.draw(cgimage, in: CGRect(x: 0, y: 0, width: height, height: width))
+      context.draw(cgImage, in: CGRect(x: 0, y: 0, width: height, height: width))
     default:
-      context.draw(cgimage, in: CGRect(x: 0, y: 0, width: width, height: height))
+      context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
     }
     let cgimg = context.makeImage()
-    let img = UIImage(cgImage: cgimg!)
-    return img
+    return UIImage(cgImage: cgimg!)
+  }
+
+  /// 画像の中央を正方形にトリミング
+  static func trimToSquare(uiImage: UIImage) -> UIImage {
+    var image: UIImage = uiImage
+    let side: CGFloat = image.size.width < image.size.height ? image.size.width : image.size.height
+    let origin: CGPoint = image.size.width < image.size.height
+      ? CGPoint(x: 0.0, y: (image.size.width - image.size.height) * 0.5)
+      : CGPoint(x: (image.size.height - image.size.width) * 0.5, y: 0.0)
+
+    UIGraphicsBeginImageContextWithOptions(CGSize(width: side, height: side), false, 0.0)
+    image.draw(in: CGRect(origin: origin, size: CGSize(width: image.size.width, height: image.size.height)))
+    image = UIGraphicsGetImageFromCurrentImageContext()!
+    UIGraphicsEndImageContext()
+
+    return image
+  }
+
+  /// 画像を指定のアングルへ回転させる
+  static func rotate(uiImage: UIImage, angle: CGFloat) -> UIImage {
+    let transform = CGAffineTransform(rotationAngle: angle)
+    let sizeRect = CGRect(origin: CGPoint.zero, size: uiImage.size)
+    let destRect = sizeRect.applying(transform)
+    let destinationSize = destRect.size
+
+    UIGraphicsBeginImageContext(destinationSize)
+    let context = UIGraphicsGetCurrentContext()!
+    context.translateBy(x: destinationSize.width / 2.0, y: destinationSize.height / 2.0)
+    context.rotate(by: angle)
+    uiImage.draw(in: CGRect(x: -uiImage.size.width / 2.0, y: -uiImage.size.height / 2.0, width: uiImage.size.width, height: uiImage.size.height))
+
+    let newImage = UIGraphicsGetImageFromCurrentImageContext()!
+    UIGraphicsEndImageContext()
+
+    return newImage
+  }
+}
+
+// MARK: - extension
+
+extension UIDeviceOrientation {
+  var coefficientForAngle: Int {
+    switch self {
+    case .portrait: return 0
+    case .landscapeLeft: return 1
+    case .landscapeRight: return 3
+    default: return 0
+    }
   }
 }
