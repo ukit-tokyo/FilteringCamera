@@ -120,9 +120,27 @@ class AVFoundationCameraViewController: UIViewController {
   }
 
   override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+    // TODO: 画面回転アニメーションを無効にしたいが無効化されない
+//    UIView.setAnimationsEnabled(false)
+//    coordinator.animate(alongsideTransition: nil) { _ in
+//      UIView.setAnimationsEnabled(true)
+//    }
     super.viewWillTransition(to: size, with: coordinator)
 
     print("testing___deviceOrientation", UIDevice.current.orientation.rawValue)
+
+    switch UIDevice.current.orientation {
+    case .portrait:
+      layoutForPortrait()
+      previewLayer.connection?.videoOrientation = .portrait
+    case .landscapeLeft:
+      layoutForLandscapeLeft()
+      previewLayer.connection?.videoOrientation = .landscapeRight
+    case .landscapeRight:
+      layoutForLandscapeRight()
+      previewLayer.connection?.videoOrientation = .landscapeLeft
+    default: break
+    }
   }
 
   private func authorize() async -> Bool {
@@ -191,31 +209,89 @@ class AVFoundationCameraViewController: UIViewController {
   }
 
   private func layoutForPortrait() {
-    previewBaseView.snp.makeConstraints { make in
+    previewBaseView.snp.remakeConstraints { make in
       make.top.equalTo(view.safeAreaLayoutGuide)
       make.left.right.equalToSuperview()
     }
 
-    overlayView.snp.makeConstraints { make in
+    overlayView.snp.remakeConstraints { make in
       make.edges.equalToSuperview()
     }
 
-    captureAreaView.snp.makeConstraints { make in
+    captureAreaView.snp.remakeConstraints { make in
       make.center.equalToSuperview()
       make.width.equalToSuperview()
       make.height.equalTo(captureAreaView.snp.width)
     }
 
-    shutterButton.snp.makeConstraints { make in
+    shutterButton.snp.remakeConstraints { make in
       make.center.equalToSuperview()
       make.width.height.equalTo(60)
     }
 
-    bottomView.snp.makeConstraints { make in
+    bottomView.snp.remakeConstraints { make in
       make.top.equalTo(previewBaseView.snp.bottom)
       make.left.right.equalToSuperview()
       make.bottom.equalTo(view.safeAreaLayoutGuide)
       make.height.equalTo(160)
+    }
+  }
+
+  private func layoutForLandscapeLeft() {
+    previewBaseView.snp.remakeConstraints { make in
+      make.top.bottom.equalToSuperview()
+      make.left.equalTo(view.safeAreaLayoutGuide)
+    }
+
+    overlayView.snp.remakeConstraints { make in
+      make.edges.equalToSuperview()
+    }
+
+    captureAreaView.snp.remakeConstraints { make in
+      make.center.equalToSuperview()
+      make.height.equalToSuperview()
+      make.width.equalTo(captureAreaView.snp.height)
+    }
+
+    shutterButton.snp.remakeConstraints { make in
+      make.center.equalToSuperview()
+      make.width.height.equalTo(60)
+    }
+
+    bottomView.snp.remakeConstraints { make in
+      make.top.bottom.equalToSuperview()
+      make.left.equalTo(previewBaseView.snp.right)
+      make.right.equalTo(view.safeAreaLayoutGuide)
+      make.width.equalTo(160)
+    }
+  }
+
+  private func layoutForLandscapeRight() {
+    previewBaseView.snp.remakeConstraints { make in
+      make.top.bottom.equalToSuperview()
+      make.right.equalTo(view.safeAreaLayoutGuide)
+    }
+
+    overlayView.snp.remakeConstraints { make in
+      make.edges.equalToSuperview()
+    }
+
+    captureAreaView.snp.remakeConstraints { make in
+      make.center.equalToSuperview()
+      make.height.equalToSuperview()
+      make.width.equalTo(captureAreaView.snp.height)
+    }
+
+    shutterButton.snp.remakeConstraints { make in
+      make.center.equalToSuperview()
+      make.width.height.equalTo(60)
+    }
+
+    bottomView.snp.remakeConstraints { make in
+      make.top.bottom.equalToSuperview()
+      make.right.equalTo(previewBaseView.snp.left)
+      make.left.equalTo(view.safeAreaLayoutGuide)
+      make.width.equalTo(160)
     }
   }
 
