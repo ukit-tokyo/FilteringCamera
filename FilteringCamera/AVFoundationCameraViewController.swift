@@ -47,6 +47,12 @@ class AVFoundationCameraViewController: UIViewController {
     return view
   }()
 
+  private lazy var bottomView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .clear
+    return view
+  }()
+
   private lazy var shutterButton: UIButton = {
     let button = UIButton()
     button.layer.cornerRadius = 30
@@ -119,11 +125,6 @@ class AVFoundationCameraViewController: UIViewController {
     print("testing___deviceOrientation", UIDevice.current.orientation.rawValue)
   }
 
-  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-    super.traitCollectionDidChange(previousTraitCollection)
-    print("testing___traitCollectionDidChange", UIDevice.current.orientation.rawValue)
-  }
-
   private func authorize() async -> Bool {
     let status = AVCaptureDevice.authorizationStatus(for: .video)
     var isAuthorized = status == .authorized
@@ -174,47 +175,48 @@ class AVFoundationCameraViewController: UIViewController {
 
   private func initLayout() {
     view.backgroundColor = .black
-
     view.addSubview(previewBaseView)
+    view.addSubview(bottomView)
     previewBaseView.layer.addSublayer(previewLayer)
+    previewBaseView.addSubview(overlayView)
+    overlayView.addSubview(captureAreaView)
+    bottomView.addSubview(shutterButton)
+
+    layoutForPortrait()
+
+    shutterButton.addAction(.init { [weak self] _ in
+      self?.capturePhoto()
+      self?.motionManager.stopDeviceMotionUpdates()
+    }, for: .touchUpInside)
+  }
+
+  private func layoutForPortrait() {
     previewBaseView.snp.makeConstraints { make in
       make.top.equalTo(view.safeAreaLayoutGuide)
       make.left.right.equalToSuperview()
     }
 
-    previewBaseView.addSubview(overlayView)
     overlayView.snp.makeConstraints { make in
       make.edges.equalToSuperview()
     }
 
-    overlayView.addSubview(captureAreaView)
     captureAreaView.snp.makeConstraints { make in
       make.center.equalToSuperview()
       make.width.equalToSuperview()
       make.height.equalTo(captureAreaView.snp.width)
     }
 
-    let bottomView = UIView()
-    bottomView.backgroundColor = .clear
-
-    bottomView.addSubview(shutterButton)
     shutterButton.snp.makeConstraints { make in
       make.center.equalToSuperview()
       make.width.height.equalTo(60)
     }
 
-    view.addSubview(bottomView)
     bottomView.snp.makeConstraints { make in
       make.top.equalTo(previewBaseView.snp.bottom)
       make.left.right.equalToSuperview()
       make.bottom.equalTo(view.safeAreaLayoutGuide)
       make.height.equalTo(160)
     }
-
-    shutterButton.addAction(.init { [weak self] _ in
-      self?.capturePhoto()
-      self?.motionManager.stopDeviceMotionUpdates()
-    }, for: .touchUpInside)
   }
 
   private func capturePhoto() {
