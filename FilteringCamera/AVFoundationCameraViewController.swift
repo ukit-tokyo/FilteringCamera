@@ -64,14 +64,14 @@ class AVFoundationCameraViewController: UIViewController {
 
   private let motionManager: CMMotionManager = {
     let manager = CMMotionManager()
-    manager.deviceMotionUpdateInterval = 0.5
+    manager.accelerometerUpdateInterval = 0.5
     return manager
   }()
   private let motionOperationQueue = OperationQueue()
 
   private var currentDeviceOrientation: UIDeviceOrientation = .portrait
 
-  deinit { motionManager.stopDeviceMotionUpdates() }
+  deinit { motionManager.stopAccelerometerUpdates() }
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -174,24 +174,17 @@ class AVFoundationCameraViewController: UIViewController {
   }
 
   private func startObserveDeviceMotion() {
-    guard motionManager.isDeviceMotionAvailable else { return }
+    guard motionManager.isAccelerometerAvailable else { return }
 
-    motionManager.startDeviceMotionUpdates(
-      using: .xMagneticNorthZVertical,
-      to: motionOperationQueue) { [weak self] deviceMotion, error in
-        guard let self, let deviceMotion else { return }
+    motionManager.startAccelerometerUpdates(to: motionOperationQueue) { [weak self] data, error in
+      guard let data, let self else { return }
+      let x = data.acceleration.x
+      let y = data.acceleration.y
 
-        let xAxis = deviceMotion.gravity.x
-        if xAxis > 0.65 {
-          self.currentDeviceOrientation = .landscapeRight
-        } else if xAxis < -0.65 {
-          self.currentDeviceOrientation = .landscapeLeft
-        } else {
-          self.currentDeviceOrientation = .portrait
-        }
-
-        print("testing___x", xAxis)
-        print("testing___orientation", self.currentDeviceOrientation.rawValue)
+      // portraitUpSideDown を検知する。UpSideDownがサポートされてないのiPhoneがあるため
+      if x < 0.25 , y > 0.25 {
+        self.currentDeviceOrientation = .portraitUpsideDown
+      }
     }
   }
 
@@ -208,7 +201,7 @@ class AVFoundationCameraViewController: UIViewController {
 
     shutterButton.addAction(.init { [weak self] _ in
       self?.capturePhoto()
-      self?.motionManager.stopDeviceMotionUpdates()
+      self?.motionManager.stopAccelerometerUpdates()
     }, for: .touchUpInside)
   }
 
@@ -302,8 +295,6 @@ class AVFoundationCameraViewController: UIViewController {
   private func capturePhoto() {
     let settings = AVCapturePhotoSettings()
     settings.flashMode = .auto
-//    settings.maxPhotoDimensions = .init(width:, height:)
-//    settings.photoQualityPrioritization = .quality
     guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
     photoOutput.capturePhoto(with: settings, delegate: self)
   }
@@ -326,6 +317,8 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
   func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
     guard let imageData = photo.fileDataRepresentation(),
           let image = UIImage(data: imageData) else { return }
+
+    // TODO: 以下の画像変換処理を最適化する。重すぎてUIスレッド固まってる
 
     let fixed = ImageUtility.fixOrientation(uiImage: image)
     let squared = ImageUtility.trimToSquare(uiImage: fixed)
@@ -436,6 +429,7 @@ extension UIDeviceOrientation {
     switch self {
     case .portrait: return 0
     case .landscapeLeft: return 1
+    case .portraitUpsideDown: return 2
     case .landscapeRight: return 3
     default: return 0
     }
