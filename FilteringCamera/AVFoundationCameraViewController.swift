@@ -113,6 +113,17 @@ class AVFoundationCameraViewController: UIViewController {
     previewLayer.frame = previewBaseView.bounds
   }
 
+  override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+    super.viewWillTransition(to: size, with: coordinator)
+
+    print("testing___deviceOrientation", UIDevice.current.orientation.rawValue)
+  }
+
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    print("testing___traitCollectionDidChange", UIDevice.current.orientation.rawValue)
+  }
+
   private func authorize() async -> Bool {
     let status = AVCaptureDevice.authorizationStatus(for: .video)
     var isAuthorized = status == .authorized
@@ -156,6 +167,7 @@ class AVFoundationCameraViewController: UIViewController {
           self.currentDeviceOrientation = .portrait
         }
 
+        print("testing___x", xAxis)
         print("testing___orientation", self.currentDeviceOrientation.rawValue)
     }
   }

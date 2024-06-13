@@ -31,6 +31,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
   }
 
+  func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+    guard var frontViewController = application.windows.first { $0.isKeyWindow }?.rootViewController else { return .portrait }
+    while let presentedViewController = frontViewController.presentedViewController {
+      frontViewController = presentedViewController
+    }
 
+    guard frontViewController is AVFoundationCameraViewController else {
+      return .portrait
+    }
+
+    return .all
+  }
 }
 
