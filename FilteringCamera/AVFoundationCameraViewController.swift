@@ -54,10 +54,8 @@ class AVFoundationCameraViewController: UIViewController {
 
   private lazy var shutterButton: UIButton = {
     let button = UIButton()
-    button.layer.cornerRadius = 30
-    button.layer.masksToBounds = true
-    button.setTitleColor(.white, for: .normal)
-    button.backgroundColor = .white
+    button.setImage(UIImage(systemName: "circle.inset.filled", withConfiguration: UIImage.SymbolConfiguration(font: .systemFont(ofSize: 72))), for: .normal)
+    button.tintColor = .white
     return button
   }()
 
@@ -255,7 +253,6 @@ class AVFoundationCameraViewController: UIViewController {
 
     shutterButton.snp.remakeConstraints { make in
       make.center.equalToSuperview()
-      make.width.height.equalTo(60)
     }
 
     bottomView.snp.remakeConstraints { make in
