@@ -335,7 +335,7 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
 
 // MARK: - utility
 
-private class ImageUtility {
+class ImageUtility {
   /// 画像のオリエンテーションを .up に正す
   static func fixOrientation(uiImage: UIImage) -> UIImage {
     if uiImage.imageOrientation == .up {

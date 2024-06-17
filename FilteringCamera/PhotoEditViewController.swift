@@ -50,6 +50,18 @@ final class PhotoEditViewController: UIViewController {
     return collectionView
   }()
 
+  private lazy var enterButton: UIButton = {
+    let button = UIButton()
+    button.layer.cornerRadius = 16
+    button.layer.masksToBounds = true
+    button.setTitle("完了", for: .normal)
+    button.setTitleColor(.white, for: .normal)
+    button.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+    button.backgroundColor = .red
+    button.contentEdgeInsets = .init(top: 0, left: 16, bottom: 0, right: 16)
+    return button
+  }()
+
   private let cellSize = CGSize(width: 100, height: 124)
 
   private let originalImage: UIImage
@@ -79,7 +91,7 @@ final class PhotoEditViewController: UIViewController {
     })
 
     let rotationButton = UIBarButtonItem(image: .init(systemName: "rotate.left"), primaryAction: .init() { [weak self] _ in
-      self?.rotateImageToLeft()
+      self?.rotateImageViewToLeft()
     })
     rotationButton.tintColor = .white
 
@@ -89,43 +101,57 @@ final class PhotoEditViewController: UIViewController {
 
     view.backgroundColor = .black
 
+    let actionView = UIView()
+    actionView.addSubview(enterButton)
+    enterButton.snp.makeConstraints { make in
+      make.right.equalToSuperview().inset(16)
+      make.height.equalTo(32)
+      make.verticalEdges.equalToSuperview().inset(24)
+    }
+
     let canvasView = UIView()
     canvasView.backgroundColor = .clear
-
-    let toolView = UIView()
-    toolView.backgroundColor = .clear
-
-    view.addSubview(canvasView)
-    canvasView.snp.makeConstraints { make in
-      make.top.equalTo(view.safeAreaLayoutGuide)
-      make.left.right.equalToSuperview()
-    }
-
-    view.addSubview(toolView)
-    toolView.snp.makeConstraints { make in
-      make.top.equalTo(canvasView.snp.bottom)
-      make.left.right.equalToSuperview()
-      make.bottom.equalTo(view.safeAreaLayoutGuide)
-      make.height.equalTo(160)
-    }
-
-    toolView.addSubview(filterSelectionView)
-    filterSelectionView.snp.makeConstraints { make in
-      make.top.equalToSuperview().inset(8)
-      make.left.right.equalToSuperview()
-      make.height.equalTo(cellSize.height)
-    }
-
     canvasView.addSubview(imageView)
     imageView.snp.makeConstraints { make in
-      make.center.equalToSuperview()
-      make.width.equalToSuperview().inset(16)
+      make.verticalEdges.equalToSuperview()
+      make.horizontalEdges.equalToSuperview().inset(16)
       make.height.equalTo(imageView.snp.width)
+    }
+
+    let stackView = UIStackView(arrangedSubviews: [
+      canvasView,
+      filterSelectionView,
+    ])
+    stackView.axis = .vertical
+    stackView.spacing = 24
+
+    view.addSubview(stackView)
+    stackView.snp.makeConstraints { make in
+      make.centerY.equalToSuperview()
+      make.horizontalEdges.equalToSuperview()
+    }
+
+    view.addSubview(actionView)
+    actionView.snp.makeConstraints { make in
+      make.horizontalEdges.equalToSuperview()
+      make.bottom.equalTo(view.safeAreaLayoutGuide)
+    }
+
+    filterSelectionView.snp.makeConstraints { make in
+      make.height.equalTo(cellSize.height)
     }
 
     filterSelectionView.dataSource = self
     filterSelectionView.delegate = self
     filterSelectionView.register(FilterItemCell.self, forCellWithReuseIdentifier: "FilterItemCell")
+
+    enterButton.addAction(.init { [weak self] _ in
+      guard let self, let image = self.imageView.image else { return }
+      let rotatedImage = self.rotateImage(image)
+      let vc = ResultViewController()
+      vc.imageView.image = rotatedImage
+      self.present(vc, animated: true)
+    }, for: .touchUpInside)
   }
 
   /// 画像を最小限のサイズに縮小する
@@ -161,7 +187,7 @@ final class PhotoEditViewController: UIViewController {
     return UIImage(cgImage: cgImage)
   }
 
-  private func rotateImageToLeft() {
+  private func rotateImageViewToLeft() {
     currentRotation = currentRotation.nextRotation
     
     let angle = CGFloat(currentRotation.coefficientForAngle) * .pi / 2
@@ -169,6 +195,12 @@ final class PhotoEditViewController: UIViewController {
     UIView.animate(withDuration: 0.3) {
       self.imageView.transform = transform
     }
+  }
+
+  private func rotateImage(_ image: UIImage) -> UIImage {
+    let angle = CGFloat(currentRotation.coefficientForAngle) * .pi / 2
+    let routated = ImageUtility.rotate(uiImage: image, angle: angle)
+    return routated
   }
 }
 
