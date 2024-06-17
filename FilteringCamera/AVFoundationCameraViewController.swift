@@ -69,6 +69,13 @@ class AVFoundationCameraViewController: UIViewController {
     return button
   }()
 
+  private lazy var closeButton: UIButton = {
+    let button = UIButton()
+    button.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: UIImage.SymbolConfiguration(font: .systemFont(ofSize: 24))), for: .normal)
+    button.tintColor = .white
+    return button
+  }()
+
   private let motionManager: CMMotionManager = {
     let manager = CMMotionManager()
     manager.accelerometerUpdateInterval = 0.5
@@ -203,6 +210,7 @@ class AVFoundationCameraViewController: UIViewController {
     previewBaseView.addSubview(overlayView)
     overlayView.addSubview(captureAreaView)
     overlayView.addSubview(flashButton)
+    overlayView.addSubview(closeButton)
     bottomView.addSubview(shutterButton)
 
     layoutForPortrait()
@@ -214,6 +222,10 @@ class AVFoundationCameraViewController: UIViewController {
 
     flashButton.addAction(.init { [weak self] _ in
       self?.flashButton.isSelected.toggle()
+    }, for: .touchUpInside)
+
+    closeButton.addAction(.init { [weak self] _ in
+      self?.dismiss(animated: true)
     }, for: .touchUpInside)
   }
 
@@ -229,6 +241,10 @@ class AVFoundationCameraViewController: UIViewController {
 
     flashButton.snp.remakeConstraints { make in
       make.top.right.equalToSuperview().inset(24)
+    }
+
+    closeButton.snp.remakeConstraints { make in
+      make.top.left.equalToSuperview().inset(24)
     }
 
     captureAreaView.snp.remakeConstraints { make in
