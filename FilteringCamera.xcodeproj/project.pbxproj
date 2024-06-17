@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B60378BD2C2001B400A5D4F9 /* ResultViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60378BC2C2001B400A5D4F9 /* ResultViewController.swift */; };
 		B60794682C1814E600D43636 /* AVFoundationCameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60794672C1814E600D43636 /* AVFoundationCameraViewController.swift */; };
 		B61813982C0DAC6E00B3E1EF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B61813972C0DAC6E00B3E1EF /* AppDelegate.swift */; };
 		B618139A2C0DAC6E00B3E1EF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B61813992C0DAC6E00B3E1EF /* SceneDelegate.swift */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B60378BC2C2001B400A5D4F9 /* ResultViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultViewController.swift; sourceTree = "<group>"; };
 		B60794672C1814E600D43636 /* AVFoundationCameraViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVFoundationCameraViewController.swift; sourceTree = "<group>"; };
 		B61813942C0DAC6E00B3E1EF /* FilteringCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FilteringCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B61813972C0DAC6E00B3E1EF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 				B618139B2C0DAC6E00B3E1EF /* ViewController.swift */,
 				B60794672C1814E600D43636 /* AVFoundationCameraViewController.swift */,
 				B630A7D62C0DECFE007DBEE8 /* PhotoEditViewController.swift */,
+				B60378BC2C2001B400A5D4F9 /* ResultViewController.swift */,
 				B6AA4A8C2C194BDD00FF388B /* ImageFilter.swift */,
 				B618139D2C0DAC6E00B3E1EF /* Main.storyboard */,
 				B61813A02C0DAC6F00B3E1EF /* Assets.xcassets */,
@@ -157,6 +160,7 @@
 			files = (
 				B618139C2C0DAC6E00B3E1EF /* ViewController.swift in Sources */,
 				B61813982C0DAC6E00B3E1EF /* AppDelegate.swift in Sources */,
+				B60378BD2C2001B400A5D4F9 /* ResultViewController.swift in Sources */,
 				B618139A2C0DAC6E00B3E1EF /* SceneDelegate.swift in Sources */,
 				B6AA4A8D2C194BDD00FF388B /* ImageFilter.swift in Sources */,
 				B60794682C1814E600D43636 /* AVFoundationCameraViewController.swift in Sources */,

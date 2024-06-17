@@ -325,7 +325,9 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
     let angle = (-CGFloat.pi / 2) * CGFloat(truncating: currentDeviceOrientation.coefficientForAngle as NSNumber)
     let rotated = ImageUtility.rotate(uiImage: squared, angle: angle)
 
-    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  rotated))
+    // TODO: オリエンテーション対応
+//    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  rotated))
+    let navigationController = UINavigationController(rootViewController: PhotoEditViewController(image:  squared))
     navigationController.modalPresentationStyle = .fullScreen
     present(navigationController, animated: false)
   }
@@ -333,7 +335,7 @@ extension AVFoundationCameraViewController: AVCapturePhotoCaptureDelegate {
 
 // MARK: - utility
 
-private class ImageUtility {
+class ImageUtility {
   /// 画像のオリエンテーションを .up に正す
   static func fixOrientation(uiImage: UIImage) -> UIImage {
     if uiImage.imageOrientation == .up {

@@ -41,7 +41,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       return .portrait
     }
 
-    return .all
+//    return .all
+    return .portrait // オリエンテーション対応が完了するまで portrait に固定する
   }
 }
 
