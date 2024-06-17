@@ -43,7 +43,6 @@ class AVFoundationCameraViewController: UIViewController {
   private lazy var overlayView: UIView = {
     let view = UIView()
     view.backgroundColor = UIColor.black.withAlphaComponent(0.8)
-    view.isUserInteractionEnabled = false
     return view
   }()
 
@@ -59,6 +58,14 @@ class AVFoundationCameraViewController: UIViewController {
     button.layer.masksToBounds = true
     button.setTitleColor(.white, for: .normal)
     button.backgroundColor = .white
+    return button
+  }()
+
+  private lazy var flashButton: UIButton = {
+    let button = UIButton()
+    button.setImage(UIImage(systemName: "bolt.fill", withConfiguration: UIImage.SymbolConfiguration(font: .systemFont(ofSize: 24))), for: .normal)
+    button.setImage(UIImage(systemName: "bolt.slash", withConfiguration: UIImage.SymbolConfiguration(font: .systemFont(ofSize: 24))), for: .selected)
+    button.tintColor = .white
     return button
   }()
 
@@ -195,6 +202,7 @@ class AVFoundationCameraViewController: UIViewController {
     previewBaseView.layer.addSublayer(previewLayer)
     previewBaseView.addSubview(overlayView)
     overlayView.addSubview(captureAreaView)
+    overlayView.addSubview(flashButton)
     bottomView.addSubview(shutterButton)
 
     layoutForPortrait()
@@ -202,6 +210,10 @@ class AVFoundationCameraViewController: UIViewController {
     shutterButton.addAction(.init { [weak self] _ in
       self?.capturePhoto()
       self?.motionManager.stopAccelerometerUpdates()
+    }, for: .touchUpInside)
+
+    flashButton.addAction(.init { [weak self] _ in
+      self?.flashButton.isSelected.toggle()
     }, for: .touchUpInside)
   }
 
@@ -213,6 +225,10 @@ class AVFoundationCameraViewController: UIViewController {
 
     overlayView.snp.remakeConstraints { make in
       make.edges.equalToSuperview()
+    }
+
+    flashButton.snp.remakeConstraints { make in
+      make.top.right.equalToSuperview().inset(24)
     }
 
     captureAreaView.snp.remakeConstraints { make in
@@ -294,7 +310,7 @@ class AVFoundationCameraViewController: UIViewController {
 
   private func capturePhoto() {
     let settings = AVCapturePhotoSettings()
-    settings.flashMode = .auto
+    settings.flashMode = flashButton.isSelected ? .auto : .off
     guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
     photoOutput.capturePhoto(with: settings, delegate: self)
   }
