@@ -7,6 +7,28 @@
 
 import UIKit
 
+private extension UIImage.Orientation {
+  var nextRotation: UIImage.Orientation {
+    return switch self {
+    case .up: .left
+    case .left: .down
+    case .down: .right
+    case .right: .up
+    default: fatalError()
+    }
+  }
+
+  var coefficientForAngle: Int {
+    switch self {
+    case .up: return 0
+    case .right: return 1
+    case .down: return 2
+    case .left: return 3
+    default: return 0
+    }
+  }
+}
+
 final class PhotoEditViewController: UIViewController {
   private let imageView: UIImageView = {
     let imageView = UIImageView()
@@ -34,6 +56,8 @@ final class PhotoEditViewController: UIViewController {
   private var compactImage: UIImage!
   private let context = CIContext()
 
+  private var currentRotation: UIImage.Orientation = .up
+
   init(image: UIImage) {
     self.originalImage = image
     super.init(nibName: nil, bundle: nil)
@@ -53,6 +77,15 @@ final class PhotoEditViewController: UIViewController {
     navigationItem.leftBarButtonItem = UIBarButtonItem(systemItem: .close, primaryAction: .init { _ in
       self.dismiss(animated: true, completion: nil)
     })
+
+    let rotationButton = UIBarButtonItem(image: .init(systemName: "rotate.left"), primaryAction: .init() { [weak self] _ in
+      self?.rotateImageToLeft()
+    })
+    rotationButton.tintColor = .white
+
+    navigationItem.rightBarButtonItems = [
+      rotationButton,
+    ]
 
     view.backgroundColor = .black
 
@@ -126,6 +159,16 @@ final class PhotoEditViewController: UIViewController {
     }
 
     return UIImage(cgImage: cgImage)
+  }
+
+  private func rotateImageToLeft() {
+    currentRotation = currentRotation.nextRotation
+    
+    let angle = CGFloat(currentRotation.coefficientForAngle) * .pi / 2
+    let transform = CGAffineTransform(rotationAngle: angle)
+    UIView.animate(withDuration: 0.3) {
+      self.imageView.transform = transform
+    }
   }
 }
 
